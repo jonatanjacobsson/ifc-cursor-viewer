@@ -2,6 +2,8 @@
 
 A Visual Studio Code extension that allows you to view IFC files directly within VS Code using [That Open Engine](https://github.com/ThatOpen/engine_components).
 
+![IFC Viewer Screenshot](./docs/iShot_2025-12-07_10.57.52.png)
+
 ## Features
 
 - **IFC Viewer**: Open `.ifc` files in a high-performance 3D viewer.
