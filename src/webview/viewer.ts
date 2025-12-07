@@ -258,33 +258,82 @@ function renderSpatialTree(node: any, container: HTMLElement, level: number = 0,
 
                         console.log('Bounding box:', { center, size });
 
-                        // Calculate camera position
+                        // Calculate camera position based on bounding box
                         const maxDim = Math.max(size.x, size.y, size.z);
                         const fov = camera.fov * (Math.PI / 180);
-                        let distance = Math.abs(maxDim / Math.tan(fov / 2));
-                        distance *= 2; // Add more padding
 
-                        // Position camera to look at the element from an angle
+                        // Calculate distance to fit the object in view
+                        // Use the diagonal of the bounding box for better framing
+                        const diagonal = Math.sqrt(size.x * size.x + size.y * size.y + size.z * size.z);
+                        let distance = diagonal / (2 * Math.tan(fov / 2));
+                        distance *= 1.2; // Add 20% padding
+
+                        // Position camera at an angle (45 degrees from each axis)
                         const direction = new THREE.Vector3(1, 1, 1).normalize();
                         const targetPos = center.clone().add(direction.multiplyScalar(distance));
 
+                        console.log('Element size:', size);
+                        console.log('Distance:', distance);
                         console.log('Camera target position:', targetPos);
                         console.log('Looking at:', center);
 
-                        // Directly set camera position
-                        camera.position.copy(targetPos);
-                        camera.lookAt(center);
-                        controls.target.copy(center);
+                        // Highlight the selected element with a different color
+                        const createHighlightMaterial = () => new THREE.MeshLambertMaterial({
+                            color: 0x00ff00,
+                            transparent: true,
+                            opacity: 0.8
+                        });
 
-                        // Reset controls to apply changes
-                        controls.reset();
-                        controls.update();
+                        if (subset.material) {
+                            if (Array.isArray(subset.material)) {
+                                // Handle material array
+                                subset.material = subset.material.map(() => createHighlightMaterial());
+                            } else if (typeof (subset.material as any).clone === 'function') {
+                                // Clone existing material
+                                const highlightMaterial = (subset.material as THREE.Material).clone() as THREE.MeshLambertMaterial;
+                                highlightMaterial.color.setHex(0x00ff00);
+                                highlightMaterial.transparent = true;
+                                highlightMaterial.opacity = 0.8;
+                                subset.material = highlightMaterial;
+                            } else {
+                                // Replace with new material
+                                subset.material = createHighlightMaterial();
+                            }
+                        } else {
+                            // Create new material if none exists
+                            subset.material = createHighlightMaterial();
+                        }
 
-                        // Force a render
-                        renderer.render(scene, camera);
+                        // Animate camera smoothly
+                        const startPos = camera.position.clone();
+                        const startTarget = controls.target.clone();
+                        const startTime = Date.now();
+                        const duration = 1000; // 1 second animation
 
-                        console.log('Camera moved to:', camera.position);
-                        console.log('Camera looking at:', controls.target);
+                        function animateCamera() {
+                            const elapsed = Date.now() - startTime;
+                            const t = Math.min(elapsed / duration, 1);
+
+                            // Easing function (ease-in-out cubic)
+                            const eased = t < 0.5
+                                ? 4 * t * t * t
+                                : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+                            // Interpolate position and target
+                            camera.position.lerpVectors(startPos, targetPos, eased);
+                            controls.target.lerpVectors(startTarget, center, eased);
+                            controls.update();
+
+                            if (t < 1) {
+                                requestAnimationFrame(animateCamera);
+                            } else {
+                                console.log('Animation complete');
+                                console.log('Final camera position:', camera.position);
+                                console.log('Final camera target:', controls.target);
+                            }
+                        }
+
+                        animateCamera();
                     } else {
                         console.warn('Bounding box is empty for element');
                     }
