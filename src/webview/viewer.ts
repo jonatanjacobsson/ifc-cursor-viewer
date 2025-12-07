@@ -173,7 +173,7 @@ async function loadIfc() {
 
         const treeContainer = document.getElementById('spatial-tree');
         if (treeContainer && spatialStructure) {
-            renderSpatialTree(spatialStructure, treeContainer);
+            renderSpatialTree(spatialStructure, treeContainer, 0, ifcLoader, (model as any).modelID);
         }
 
         // Clean up blob URL
@@ -197,7 +197,7 @@ async function loadIfc() {
     }
 }
 
-function renderSpatialTree(node: any, container: HTMLElement, level: number = 0) {
+function renderSpatialTree(node: any, container: HTMLElement, level: number = 0, ifcLoader?: IFCLoader, modelID?: number) {
     const indent = level * 15;
     const nodeEl = document.createElement('div');
     nodeEl.style.cssText = `padding: 4px 0 4px ${indent}px; cursor: pointer; opacity: 0.9;`;
@@ -214,11 +214,94 @@ function renderSpatialTree(node: any, container: HTMLElement, level: number = 0)
         nodeEl.style.background = 'transparent';
     });
 
+    // Add click handler to zoom to element
+    if (node.expressID && ifcLoader && modelID !== undefined) {
+        nodeEl.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            try {
+                // Highlight the element in UI
+                nodeEl.style.background = '#1a4d7a';
+
+                console.log(`Attempting to zoom to element #${node.expressID} (${node.type})`);
+
+                // Remove previous selection
+                ifcLoader.ifcManager.removeSubset(modelID, undefined, 'selection');
+
+                // Get the geometry for this element
+                const geometry = await ifcLoader.ifcManager.getItemProperties(modelID, node.expressID, true);
+                console.log('Element properties:', geometry);
+
+                // Create a subset with just this element - use material instead of scene
+                const subset = ifcLoader.ifcManager.createSubset({
+                    modelID: modelID,
+                    ids: [node.expressID],
+                    removePrevious: false,
+                    customID: 'selection'
+                });
+
+                console.log('Subset created:', subset);
+                console.log('Subset has geometry:', subset ? 'yes' : 'no');
+
+                if (subset) {
+                    // Add subset to scene if not already there
+                    if (!scene.children.includes(subset)) {
+                        scene.add(subset);
+                    }
+
+                    // Calculate bounding box for the subset
+                    const box = new THREE.Box3().setFromObject(subset);
+
+                    // Check if box is valid
+                    if (!box.isEmpty()) {
+                        const center = box.getCenter(new THREE.Vector3());
+                        const size = box.getSize(new THREE.Vector3());
+
+                        console.log('Bounding box:', { center, size });
+
+                        // Calculate camera position
+                        const maxDim = Math.max(size.x, size.y, size.z);
+                        const fov = camera.fov * (Math.PI / 180);
+                        let distance = Math.abs(maxDim / Math.tan(fov / 2));
+                        distance *= 2; // Add more padding
+
+                        // Position camera to look at the element from an angle
+                        const direction = new THREE.Vector3(1, 1, 1).normalize();
+                        const targetPos = center.clone().add(direction.multiplyScalar(distance));
+
+                        console.log('Camera target position:', targetPos);
+                        console.log('Looking at:', center);
+
+                        // Directly set camera position
+                        camera.position.copy(targetPos);
+                        camera.lookAt(center);
+                        controls.target.copy(center);
+
+                        // Reset controls to apply changes
+                        controls.reset();
+                        controls.update();
+
+                        // Force a render
+                        renderer.render(scene, camera);
+
+                        console.log('Camera moved to:', camera.position);
+                        console.log('Camera looking at:', controls.target);
+                    } else {
+                        console.warn('Bounding box is empty for element');
+                    }
+                } else {
+                    console.warn('No geometry found for element');
+                }
+            } catch (error) {
+                console.error('Error zooming to element:', error);
+            }
+        });
+    }
+
     container.appendChild(nodeEl);
 
     if (node.children && node.children.length > 0) {
         node.children.forEach((child: any) => {
-            renderSpatialTree(child, container, level + 1);
+            renderSpatialTree(child, container, level + 1, ifcLoader, modelID);
         });
     }
 }
