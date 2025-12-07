@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "target": "ES2022",
+        "lib": [
+            "DOM",
+            "ES2022"
+        ],
+        "moduleResolution": "bundler",
+        "strict": true,
+        "rootDir": "."
+    },
+    "include": [
+        "viewer.ts"
+    ]
+}
