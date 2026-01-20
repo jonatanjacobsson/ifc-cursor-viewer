@@ -32,10 +32,13 @@ const extensionConfig = {
     rules: [
       {
         test: /\.ts$/,
-        exclude: /node_modules/,
+        exclude: [/node_modules/, /src[\\/]webview/],
         use: [
           {
-            loader: 'ts-loader'
+            loader: 'ts-loader',
+            options: {
+              instance: 'extension'
+            }
           }
         ]
       }
@@ -61,7 +64,13 @@ const webviewConfig = {
   },
   resolve: {
     // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
-    extensions: ['.ts', '.js']
+    extensions: ['.ts', '.js'],
+    extensionAlias: {
+      '.js': ['.ts', '.js']
+    }
+  },
+  experiments: {
+    asyncWebAssembly: true
   },
   module: {
     rules: [
@@ -72,7 +81,14 @@ const webviewConfig = {
           {
             loader: 'ts-loader',
             options: {
-              configFile: path.resolve(__dirname, 'src/webview/tsconfig.json')
+              instance: 'webview',
+              configFile: path.resolve(__dirname, 'src/webview/tsconfig.json'),
+              transpileOnly: true,
+              ignoreDiagnostics: [1479],
+              compilerOptions: {
+                module: 'ESNext',
+                moduleResolution: 'bundler'
+              }
             }
           }
         ]

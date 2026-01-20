@@ -4,7 +4,7 @@
   "description": "IFC Viewer for VS Code",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.106.1"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Other"
@@ -40,7 +40,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "@types/three": "^0.181.0",
-    "@types/vscode": "^1.106.1",
+    "@types/vscode": "^1.74.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
     "copy-webpack-plugin": "^13.0.1",

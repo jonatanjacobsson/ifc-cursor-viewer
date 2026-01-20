@@ -8,7 +8,9 @@
         ],
         "moduleResolution": "bundler",
         "strict": true,
-        "rootDir": "."
+        "rootDir": ".",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true
     },
     "include": [
         "viewer.ts"
